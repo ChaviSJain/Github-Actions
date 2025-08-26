@@ -1,0 +1,32 @@
+name: Deploy Flask App via Ansible
+
+on:
+    workflow_dispatch: # Allows manual triggering of the workflow from github
+
+jobs:
+    ansible-deploy:
+        runs-on: ubuntu-latest
+
+        env:
+            ANSIBLE_HOST_KEY_CHECKING: "False" #Disable hot key checking (prompt)
+            PRIVATE_KEY: ${{ secrets.SHH_PRIVATE_KEY }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: 🛠️ Install Ansible
+              run: |
+                sudo apt update
+                sudo apt install -y ansible
+
+            - name: 🔐 Setup SSH key
+              run: |
+                mkdir -p ~/.ssh
+                echo "$PRIVATE_KEY" > ~/.ssh/id_rsa
+                chmod 600 ~/.ssh/id_rsa
+                ssh-keyscan -H 43.205.138.196 >> ~/.ssh/known_hosts
+
+            - name: Run Ansible Playbook
+              run: |
+                  ansible-playbook -i inventory.ini play-deploy-test-app.yml
