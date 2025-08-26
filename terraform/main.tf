@@ -32,7 +32,8 @@ resource "aws_lambda_function" "flask_lambda" {
   handler       = "app.handler"  # Entry point: app.py file with handler() function
   runtime       = "python3.11"  # Specifies Python runtime version
   role          = aws_iam_role.lambda_exec.arn  # IAM role ARN for Lambda execution
-  source_code_hash = filebase64sha256("${path.module}/lambda.zip")
+  source_code_hash = var.lambda_source_code_hash
+
   # Ensures Lambda updates when the ZIP file changes
 }
 

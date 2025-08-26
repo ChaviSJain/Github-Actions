@@ -41,6 +41,12 @@ jobs:
       - name: 📦 Move lambda.zip to Terraform folder
         run: mv lambda.zip terraform/  # Move zip file into terraform/ so Terraform can access it
 
+      - name: 🔐 Compute source_code_hash
+        id: hash
+        run: |
+          echo "hash=$(sha256sum terraform/lambda.zip | awk '{print $1}' | xxd -r -p | base64)" >> $GITHUB_OUTPUT
+        # This computes the base64-encoded SHA256 hash of lambda.zip and stores it as an output variable
+        
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2  # Install Terraform CLI
         with:
