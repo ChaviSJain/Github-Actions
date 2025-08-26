@@ -1,60 +1,62 @@
 # .github/workflows/deploy.yml
-name: Deploy Lambda via Terraform
+# This GitHub Actions workflow automates packaging and deploying a Flask-based AWS Lambda using Terraform.
+
+name: Deploy Lambda via Terraform  # Workflow name shown in GitHub Actions UI
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger workflow on push to the main branch
 
 jobs:
-  terraform:
-    runs-on: ubuntu-latest
+  terraform:  # Single job named 'terraform'
+    runs-on: ubuntu-latest  # Use GitHub-hosted Ubuntu runner
 
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: "ap-south-1"
+    env:  # Set environment variables for AWS authentication
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}  # Injected from GitHub Secrets
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # Injected from GitHub Secrets
+      AWS_REGION: "ap-south-1"  # Target AWS region
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # Pull repo contents into the runner
 
       - name: 🛠️ Install Python & Zip
         run: |
-          sudo apt update
-          sudo apt install -y python3 python3-pip zip
+          sudo apt update  # Update package index
+          sudo apt install -y python3 python3-pip zip  # Install Python and zip utility
 
       - name: 🔧 Run build.sh to package Lambda
         run: |
-          chmod +x build.sh
-          ./build.sh
+          chmod +x build.sh  # Make build.sh executable
+          ./build.sh  # Run script to install dependencies, patch aws_wsgi, and zip Lambda code
 
       - name: ✅ Verify lambda.zip exists
         run: |
-          if [ ! -f lambda.zip ]; then
+          if [ ! -f lambda.zip ]; then  # Check if zip file was created
             echo "❌ lambda.zip not found — build may have failed"
-            exit 1
+            exit 1  # Exit with error if missing
           fi
 
       - name: 📦 Move lambda.zip to Terraform folder
-        run: mv lambda.zip terraform/
+        run: mv lambda.zip terraform/  # Move zip file into terraform/ so Terraform can access it
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v2  # Install Terraform CLI
         with:
-          terraform_version: 1.6.0
+          terraform_version: 1.6.0  # Specify Terraform version
 
       - name: Verify AWS Identity
-        run: aws sts get-caller-identity
+        run: aws sts get-caller-identity  # Confirm AWS credentials are valid
 
       - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
+        working-directory: terraform  # Run inside terraform/ directory
+        run: terraform init  # Initialize backend and download providers
 
       - name: Terraform Plan
         working-directory: terraform
-        run: terraform plan
+        run: terraform plan  # Preview infrastructure changes
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve  # Deploy infrastructure without manual approval
