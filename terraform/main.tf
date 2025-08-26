@@ -28,7 +28,7 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
 
 resource "aws_lambda_function" "flask_lambda" {
   function_name = var.lambda_function_name  # Lambda function name from variable
-  filename      = "${path.module}/../lambda.zip"  # Path to the zipped Flask app
+  filename      = "${path.module}/lambda.zip"  # Path to the zipped Flask app
   handler       = "app.handler"  # Entry point: app.py file with handler() function
   runtime       = "python3.11"  # Specifies Python runtime version
   role          = aws_iam_role.lambda_exec.arn  # IAM role ARN for Lambda execution
