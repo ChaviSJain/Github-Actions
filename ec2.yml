@@ -6,7 +6,7 @@
   gather_facts: false                         # No need to gather facts for localhost
   vars:                                       # Define variables used in this play
     key_name: flask-deploy-key
-    pem_file: "{{ playbook_dir }}/flask-deploy-key.pem"                # AWS Key Pair for SSH access to EC2
+    pem_file: "~/.ssh/flask-deploy-key.pem"                # AWS Key Pair for SSH access to EC2
     instance_type: t2.micro                   # EC2 instance type (small free-tier eligible VM)
     image_id: ami-0f918f7e67a3323f0           # Ubuntu AMI ID (must replace with valid one)
     region: ap-south-1                        # AWS region to deploy in (Mumbai region here)
