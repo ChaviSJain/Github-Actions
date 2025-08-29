@@ -1,45 +1,54 @@
-name: Deploy Flask App to EC2 via Ansible
+name: Deploy Flask App to EC2 via Ansible  # Name of the workflow shown in GitHub Actions UI
 
 on:
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:  # Allows manual triggering from the GitHub Actions dashboard
   push:
     branches:
-      - main           # Trigger on push to main
+      - main           # Automatically triggers when code is pushed to the main branch
 
 jobs:
   deploy:
-    name: Provision and Deploy EC2
-    runs-on: ubuntu-latest
+    name: Provision and Deploy EC2         # Job name shown in the Actions UI
+    runs-on: ubuntu-latest                 # Uses the latest Ubuntu runner provided by GitHub
 
     env:
-      ANSIBLE_HOST_KEY_CHECKING: false
+      ANSIBLE_HOST_KEY_CHECKING: false     # Disables SSH host key checking to avoid prompts during Ansible SSH
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3            # Pulls your repo code into the runner so Ansible can access playbooks
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4        # Installs Python (required for Ansible and AWS SDK)
       with:
-        python-version: '3.10'
+        python-version: '3.10'             # Specifies Python version to use (compatible with Ansible and boto3)
 
     - name: Install Ansible and AWS collection
       run: |
-        python -m pip install --upgrade pip
-        pip install ansible boto3 botocore
-        ansible-galaxy collection install amazon.aws
+        python -m pip install --upgrade pip         
+        pip install ansible boto3 botocore          
+        ansible-galaxy collection install amazon.aws  
+    # Ensures pip is up-to-date
+    # Installs Ansible and AWS SDK libraries (boto3, botocore)
+    # Installs the Amazon AWS Ansible collection for EC2 provisioning
 
     - name: Add SSH key for EC2 access
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/flask-deploy-key.pem
-        chmod 600 ~/.ssh/flask-deploy-key.pem
+        mkdir -p ~/.ssh                             
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/flask-deploy-key.pem  
+        chmod 600 ~/.ssh/flask-deploy-key.pem       
+    # Creates the .ssh directory if it doesn't exist
+    # Writes the private key from GitHub Secrets to a file
+    # Secures the key file with proper permissions (read/write for owner only)
 
     - name: Run Ansible Playbook
       run: |
-        ansible-playbook ec2.yml \
-          -e "app_url=${{ secrets.APP_ZIP_URL }}" \
-          -e "app_dir=/home/ubuntu/flask-app"
+        ansible-playbook ec2.yml \                  
+          -e "app_url=${{ secrets.APP_ZIP_URL }}" \ 
+          -e "app_dir=/home/ubuntu/flask-app"   
+    # Executes your main Ansible playbook
+    # Passes the app zip URL as a variable (used in your role to download the app)
+    # Specifies where the app should be deployed on the EC2 instance
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}         # AWS credentials for provisioning EC2
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} # AWS credentials for provisioning EC2

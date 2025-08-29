@@ -4,6 +4,7 @@
 name: Deploy Lambda via Terraform  # Workflow name shown in GitHub Actions UI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main  # Trigger workflow on push to the main branch
@@ -24,22 +25,27 @@ jobs:
       - name: 🛠️ Install Python & Zip
         run: |
           sudo apt update  # Update package index
-          sudo apt install -y python3 python3-pip zip  # Install Python and zip utility
+          sudo apt install -y python3 python3-pip zip  
+      # Install Python and zip utility
 
       - name: 🔧 Run build.sh to package Lambda
         run: |
-          chmod +x build.sh  # Make build.sh executable
-          ./build.sh  # Run script to install dependencies, patch aws_wsgi, and zip Lambda code
+          chmod +x build.sh  
+          ./build.sh 
+      # Make build.sh executable
+      # Run script to install dependencies, patch aws_wsgi, and zip Lambda code
 
       - name: ✅ Verify lambda.zip exists
         run: |
-          if [ ! -f lambda.zip ]; then  # Check if zip file was created
+          if [ ! -f lambda.zip ]; then  
             echo "❌ lambda.zip not found — build may have failed"
             exit 1  # Exit with error if missing
           fi
+      # Check if zip file was created
 
       - name: 📦 Move lambda.zip to Terraform folder
-        run: mv lambda.zip terraform/  # Move zip file into terraform/ so Terraform can access it
+        run: mv lambda.zip terraform/  
+      # Move zip file into terraform/ so Terraform can access it
 
       - name: 🔐 Compute source_code_hash
         id: hash
