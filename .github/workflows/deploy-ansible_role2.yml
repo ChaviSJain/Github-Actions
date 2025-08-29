@@ -18,10 +18,17 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v3
 
-            - name: 🛠️ Install Ansible & AWS CLI
+            - name: 🛠️ Install Ansible + AWS CLI
               run: |
                 sudo apt update
-                sudo apt install -y ansible awscli   # Install both Ansible and AWS CLI
+                sudo apt install -y ansible curl unzip groff less
+
+                # Install AWS CLI v2 (Ubuntu 24.04 doesn't ship awscli package)
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                sudo ./aws/install
+                aws --version
+
 
             - name: 🔍 Get EC2 Public IP dynamically
               id: ec2ip
