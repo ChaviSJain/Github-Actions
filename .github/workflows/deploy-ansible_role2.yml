@@ -21,7 +21,7 @@ jobs:
             - name: 🛠️ Install Ansible + AWS CLI
               run: |
                 sudo apt update
-                sudo apt install -y ansible curl unzip groff less
+                sudo apt install -y ansible awscli
 
             - name: 🔍 Get EC2 Public IP dynamically
               id: ec2ip
