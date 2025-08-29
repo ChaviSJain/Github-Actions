@@ -1,5 +1,5 @@
 ---
-# Step 1: Remove old / broken Ansible PPA if it exists (prevents package conflicts)
+# Step 1: Remove old/broken Ansible PPA if it exists (prevents package conflicts)
 - name: Remove broken Ansible PPA (if exists)
   apt_repository:
     repo: 'ppa:ansible/ansible'
@@ -53,7 +53,7 @@
 # Step 7: Add the official Docker repository
 - name: Add Docker repository
   apt_repository:
-    repo: "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    repo: "deb [arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     state: present
     filename: docker
   become: true
@@ -157,6 +157,7 @@
   args:
     chdir: "{{ app_dir }}"
   ignore_errors: yes
+  become: true
 
 
 # Step 20: Remove any container using port 5000 (avoid conflicts)

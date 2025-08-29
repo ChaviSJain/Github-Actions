@@ -1,48 +1,45 @@
-name: Deploy Flask App via Ansible
+name: Deploy Flask App to EC2 via Ansible
 
 on:
-    workflow_dispatch:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - main           # Trigger on push to main
 
 jobs:
-    ansible-deploy:
-        runs-on: ubuntu-22.04
+  deploy:
+    name: Provision and Deploy EC2
+    runs-on: ubuntu-latest
 
-        env:
-            ANSIBLE_HOST_KEY_CHECKING: "False"
-            PRIVATE_KEY: ${{ secrets.SHH_PRIVATE_KEY }}
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}     # AWS creds from GitHub Secrets
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: ap-south-1                          # Change to your region
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: false
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-            - name: 🛠️ Install Ansible + AWS CLI
-              run: |
-                sudo apt update
-                sudo apt install -y ansible awscli
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-            - name: 🔍 Get EC2 Public IP dynamically
-              id: ec2ip
-              run: |
-                EC2_IP=$(aws ec2 describe-instances \
-                  --filters "Name=tag:Name,Values=flask-server" "Name=instance-state-name,Values=running" \
-                  --query "Reservations[0].Instances[0].PublicIpAddress" \
-                  --output text)
-                echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
-                echo "Public IP: $EC2_IP"
+    - name: Install Ansible and AWS collection
+      run: |
+        python -m pip install --upgrade pip
+        pip install ansible boto3 botocore
+        ansible-galaxy collection install amazon.aws
 
-            - name: 🔐 Setup SSH key
-              run: |
-                mkdir -p ~/.ssh
-                echo "$PRIVATE_KEY" > ~/.ssh/id_rsa
-                chmod 600 ~/.ssh/id_rsa
-                ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts   # Use dynamic IP
+    - name: Add SSH key for EC2 access
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/flask-deploy-key.pem
+        chmod 600 ~/.ssh/flask-deploy-key.pem
 
-            - name: Run Ansible Playbook
-              run: |
-                  ansible-playbook -i "$EC2_IP," -u ubuntu --private-key ~/.ssh/id_rsa play-deploy-test-app.yml
-                  # "$EC2_IP," : Use dynamic IP inline inventory (comma required!)
-                  # -u ubuntu : Default Ubuntu user for EC2
-                  # --private-key : Use the SSH key we set up
+    - name: Run Ansible Playbook
+      run: |
+        ansible-playbook ec2.yml \
+          -e "app_url=${{ secrets.APP_ZIP_URL }}" \
+          -e "app_dir=/home/ubuntu/flask-app"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

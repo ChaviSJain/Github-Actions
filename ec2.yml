@@ -1,0 +1,48 @@
+---
+# First Play: Provision EC2 instance
+- name: Provision EC2 instance                # Name of the play
+  hosts: localhost                            # Run this playbook on localhost (control node)
+  connection: local                           # Connect locally instead of via SSH
+  gather_facts: false                         # No need to gather facts for localhost
+  vars:                                       # Define variables used in this play
+    key_name: flask-deploy-key
+    pem_file: "{{ playbook_dir }}/flask-deploy-key.pem"                # AWS Key Pair for SSH access to EC2
+    instance_type: t2.micro                   # EC2 instance type (small free-tier eligible VM)
+    image_id: ami-0f918f7e67a3323f0           # Ubuntu AMI ID (must replace with valid one)
+    region: ap-south-1                        # AWS region to deploy in (Mumbai region here)
+    security_group: sg-0a883f9ca9d48325f      # Security group to attach to EC2
+    subnet_id: subnet-0cc96fe779238446a
+    
+  tasks:
+  - name: Launch EC2 instance
+    amazon.aws.ec2_instance:
+      name: flask-server
+      key_name: "{{ key_name }}"
+      instance_type: "{{ instance_type }}"
+      image_id: "{{ image_id }}"
+      region: "{{ region }}"
+      security_groups: [ "{{ security_group }}" ]
+      wait: true
+    register: ec2
+
+  - name: Add new instance to host group
+    add_host:
+      name: "{{ ec2.instances[0].public_ip_address }}"   # Only first instance
+      groups: flask_servers
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: "{{ pem_file }}"
+
+  - name: Wait for SSH to be ready
+    ansible.builtin.wait_for:
+      host: "{{ ec2.instances[0].public_ip_address }}"   # Only first instance
+      port: 22
+      delay: 10
+      timeout: 300
+      # Loop through created instances
+
+# Second Play: Configure Flask server
+- name: Configure Flask server
+  hosts: flask_servers                        # Target all hosts in 'flask_servers' group
+  remote_user: ubuntu                         # SSH into instance as 'ubuntu' user (default for Ubuntu AMIs)                              # Run tasks with sudo/root privileges
+  roles:
+    - test                                    # Apply the 'test' role (your Flask + Docker deployment role)
